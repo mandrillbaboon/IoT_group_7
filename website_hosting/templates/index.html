@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EnviroSense</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:       #f5f4f0;
+  --surface:  #ffffff;
+  --border:   #e2e0d8;
+  --text:     #1a1917;
+  --muted:    #888680;
+  --faint:    #b8b5af;
+  --accent:   #1a6b45;
+  --accent-l: #e8f4ee;
+  --amber:    #b45309;
+  --amber-l:  #fef3c7;
+  --blue:     #1d4ed8;
+  --blue-l:   #eff6ff;
+  --mono:     'IBM Plex Mono', monospace;
+  --sans:     'IBM Plex Sans', sans-serif;
+  --radius:   6px;
+}
+
+html, body {
+  height: 100%; background: var(--bg);
+  color: var(--text); font-family: var(--sans);
+  font-size: 15px; line-height: 1.6;
+}
+
+/* ── LOGIN ────────────────────────────────────────── */
+#login {
+  min-height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+}
+#login.hidden { display: none; }
+
+.login-card {
+  width: 360px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 40px;
+  animation: up .4s ease both;
+}
+@keyframes up { from { opacity:0; transform: translateY(16px); } to { opacity:1; transform:none; } }
+
+.brand {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--mono); font-size: 11px;
+  letter-spacing: .14em; text-transform: uppercase;
+  color: var(--accent); margin-bottom: 32px;
+}
+.brand-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--accent); animation: blink 2.4s ease infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+.login-card h1 { font-size: 22px; font-weight: 300; margin-bottom: 4px; }
+.login-card p  { font-size: 13px; color: var(--muted); margin-bottom: 28px; }
+
+label {
+  display: block;
+  font-family: var(--mono); font-size: 10px;
+  letter-spacing: .12em; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 6px;
+}
+input[type=text], input[type=password] {
+  width: 100%;
+  padding: 10px 12px;
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-family: var(--sans); font-size: 14px; color: var(--text);
+  outline: none; transition: border-color .15s;
+  margin-bottom: 14px;
+}
+input:focus { border-color: var(--accent); }
+
+.btn {
+  width: 100%; padding: 11px;
+  background: var(--accent); color: #fff; border: none;
+  border-radius: var(--radius); cursor: pointer;
+  font-family: var(--mono); font-size: 12px;
+  letter-spacing: .1em; text-transform: uppercase;
+  transition: opacity .15s;
+}
+.btn:hover { opacity: .88; }
+
+.login-hint { font-size: 12px; color: var(--faint); margin-top: 14px; font-family: var(--mono); }
+.login-err  { font-size: 12px; color: #dc2626; margin-top: 10px; min-height: 18px; font-family: var(--mono); }
+
+
+/* ── DASHBOARD ────────────────────────────────────── */
+#dash { display: none; min-height: 100vh; flex-direction: column; }
+#dash.visible { display: flex; animation: up .35s ease both; }
+
+header {
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  padding: 0 32px; height: 52px;
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 10;
+}
+.header-brand { display: flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); }
+.header-right  { display: flex; align-items: center; gap: 20px; }
+.header-time   { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+.logout        { font-family: var(--mono); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); cursor: pointer; background: none; border: 1px solid var(--border); padding: 5px 10px; border-radius: var(--radius); transition: color .15s, border-color .15s; }
+.logout:hover  { color: #dc2626; border-color: #dc2626; }
+
+main { flex: 1; padding: 28px 32px; max-width: 1100px; width: 100%; margin: 0 auto; }
+
+/* stat cards */
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 24px; }
+.stat {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 18px 20px;
+}
+.stat-label { font-family: var(--mono); font-size: 9px; letter-spacing: .14em; text-transform: uppercase; color: var(--faint); margin-bottom: 8px; }
+.stat-val   { font-family: var(--mono); font-size: 28px; font-weight: 600; line-height: 1; }
+.stat-range { font-size: 12px; color: var(--muted); margin-top: 5px; }
+.c-green  { color: var(--accent); }
+.c-amber  { color: var(--amber); }
+.c-blue   { color: var(--blue);  }
+
+/* chart panels */
+.panels { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+.panel-full { grid-column: 1 / -1; }
+.panel {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 20px 22px;
+}
+.panel-title { font-family: var(--mono); font-size: 10px; letter-spacing: .13em; text-transform: uppercase; color: var(--muted); margin-bottom: 2px; }
+.panel-sub   { font-size: 12px; color: var(--faint); margin-bottom: 16px; }
+
+/* table */
+.tbl-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th {
+  font-family: var(--mono); font-size: 9px; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--faint);
+  padding: 7px 14px; text-align: left; border-bottom: 1px solid var(--border);
+}
+td { padding: 9px 14px; border-bottom: 1px solid var(--border); color: var(--muted); font-family: var(--mono); font-size: 12px; }
+tr:last-child td { border: none; }
+tr:hover td { background: var(--bg); color: var(--text); }
+
+.loading { text-align: center; padding: 40px; color: var(--faint); font-family: var(--mono); font-size: 12px; }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login">
+  <div class="login-card">
+    <div class="brand"><span class="brand-dot"></span>EnviroSense</div>
+    <h1>Sign in</h1>
+    <p>Environmental sensor dashboard</p>
+    <label>Username</label>
+    <input type="text" id="u" placeholder="admin" autocomplete="off">
+    <label>Password</label>
+    <input type="password" id="p" placeholder="••••••••">
+    <button class="btn" onclick="login()">Sign in</button>
+    <div class="login-hint">demo: admin / admin123</div>
+    <div class="login-err" id="err"></div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dash">
+  <header>
+    <div class="header-brand"><span class="brand-dot"></span>EnviroSense</div>
+    <div class="header-right">
+      <span class="header-time" id="clock"></span>
+      <button class="logout" onclick="logout()">Sign out</button>
+    </div>
+  </header>
+  <main>
+    <div id="content"><div class="loading">Loading data…</div></div>
+  </main>
+</div>
+
+<script>
+let TOKEN = null;
+let charts = {};
+
+// ── Clock ────────────────────────────────────────────────────────────────────
+setInterval(() => {
+  const el = document.getElementById('clock');
+  if (el) el.textContent = new Date().toLocaleTimeString('en-GB');
+}, 1000);
+
+// ── Auth ─────────────────────────────────────────────────────────────────────
+document.getElementById('p').addEventListener('keydown', e => { if (e.key==='Enter') login(); });
+document.getElementById('u').addEventListener('keydown', e => { if (e.key==='Enter') login(); });
+
+async function login() {
+  const u = document.getElementById('u').value.trim();
+  const p = document.getElementById('p').value;
+  document.getElementById('err').textContent = '';
+  try {
+    const res = await fetch('/api/login', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({username:u, password:p})
+    });
+    const data = await res.json();
+    if (!res.ok) { document.getElementById('err').textContent = data.error || 'Login failed'; return; }
+    TOKEN = data.token;
+    document.getElementById('login').classList.add('hidden');
+    document.getElementById('dash').classList.add('visible');
+    loadDashboard();
+    setInterval(loadDashboard,60000);
+  } catch(e) {
+    document.getElementById('err').textContent = 'Connection error';
+  }
+}
+
+async function logout() {
+  await fetch('/api/logout', { method:'POST', headers: authHeaders() }).catch(()=>{});
+  TOKEN = null;
+  Object.values(charts).forEach(c => c.destroy()); charts = {};
+  document.getElementById('dash').classList.remove('visible');
+  document.getElementById('login').classList.remove('hidden');
+  document.getElementById('p').value = '';
+}
+
+function authHeaders() { return { 'Authorization': 'Bearer ' + TOKEN }; }
+
+// ── Dashboard ─────────────────────────────────────────────────────────────────
+async function loadDashboard() {
+  const [readings, stats] = await Promise.all([
+    fetch('/api/readings?limit=300', { headers: authHeaders() }).then(r=>r.json()),
+    fetch('/api/stats',              { headers: authHeaders() }).then(r=>r.json()),
+  ]);
+  renderDashboard(readings, stats);
+}
+
+function renderDashboard(data, s) {
+  document.getElementById('content').innerHTML = `
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-label">Avg temperature</div>
+        <div class="stat-val c-amber">${s.avg_temp}°C</div>
+        <div class="stat-range">${s.min_temp} – ${s.max_temp} °C</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Avg humidity</div>
+        <div class="stat-val c-blue">${s.avg_hum}%</div>
+        <div class="stat-range">${s.min_hum} – ${s.max_hum} %</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Total readings</div>
+        <div class="stat-val c-green">${s.count}</div>
+        <div class="stat-range">${s.first_ts.slice(0,10)} → ${s.last_ts.slice(0,10)}</div>
+      </div>
+    </div>
+
+    <div class="panels">
+      <div class="panel panel-full">
+        <div class="panel-title">Temperature &amp; Humidity over time</div>
+        <div class="panel-sub">${data.length} readings · dual-axis line chart</div>
+        <div style="position:relative;height:280px"><canvas id="ch-main"></canvas></div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">Temperature distribution</div>
+        <div class="panel-sub">Reading frequency histogram</div>
+        <div style="position:relative;height:200px"><canvas id="ch-thist"></canvas></div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">Humidity distribution</div>
+        <div class="panel-sub">Reading frequency histogram</div>
+        <div style="position:relative;height:200px"><canvas id="ch-hhist"></canvas></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">Recent readings</div>
+      <div class="panel-sub">Latest 20 records from database</div>
+      <div class="tbl-wrap" style="margin-top:12px">
+        <table>
+          <thead><tr><th>#</th><th>Timestamp</th><th>Temperature</th><th>Humidity</th></tr></thead>
+          <tbody>
+            ${[...data].reverse().slice(0,20).map((r,i)=>`
+              <tr>
+                <td style="color:var(--faint)">${i+1}</td>
+                <td>${r.ts.replace('T',' ')}</td>
+                <td style="color:var(--amber)">${r.temp.toFixed(1)} °C</td>
+                <td style="color:var(--blue)">${r.hum.toFixed(1)} %</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+
+  buildCharts(data);
+}
+
+function buildCharts(data) {
+  const labels = data.map(r => r.ts.slice(5,16).replace('T',' '));
+  const temps  = data.map(r => r.temp);
+  const hums   = data.map(r => r.hum);
+
+  const gridColor = 'rgba(0,0,0,0.05)';
+  const tickStyle = { color:'#b8b5af', font:{size:10, family:'IBM Plex Mono'} };
+
+  // Main dual-axis chart
+  charts.main = new Chart(document.getElementById('ch-main'), {
+    data: {
+      labels,
+      datasets: [
+        {
+          type: 'line', label: 'Temperature (°C)',
+          data: temps, yAxisID: 'y1',
+          borderColor: '#b45309', backgroundColor: 'rgba(180,83,9,.08)',
+          borderWidth: 1.5, pointRadius: 0, tension: 0.3, fill: true
+        },
+        {
+          type: 'line', label: 'Humidity (%)',
+          data: hums, yAxisID: 'y2',
+          borderColor: '#1d4ed8', backgroundColor: 'rgba(29,78,216,.06)',
+          borderWidth: 1.5, pointRadius: 0, tension: 0.3, fill: true
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, interaction: { mode:'index', intersect:false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor:'#fff', borderColor:'#e2e0d8', borderWidth:1,
+          titleColor:'#1a1917', bodyColor:'#888680',
+          titleFont:{family:'IBM Plex Mono',size:11}, bodyFont:{family:'IBM Plex Mono',size:11},
+          callbacks: {
+            label: ctx => ctx.datasetIndex===0
+              ? ` Temp: ${ctx.parsed.y.toFixed(1)} °C`
+              : ` Hum:  ${ctx.parsed.y.toFixed(1)} %`
+          }
+        }
+      },
+      scales: {
+        x: { ticks:{...tickStyle, maxTicksLimit:10, maxRotation:0}, grid:{color:gridColor} },
+        y1: {min:0, position:'left',  ticks:{...tickStyle, callback:v=>`${v}°`}, grid:{color:gridColor}, title:{display:true,text:'°C',color:'#b45309',font:{size:10,family:'IBM Plex Mono'}} },
+        y2: {min:0, max:100, position:'right', ticks:{...tickStyle, callback:v=>`${v}%`}, grid:{drawOnChartArea:false}, title:{display:true,text:'%',color:'#1d4ed8',font:{size:10,family:'IBM Plex Mono'}} }
+      }
+    }
+  });
+
+  // Histograms
+  function makeHist(vals, color) {
+    const mn = Math.min(...vals), mx = Math.max(...vals);
+    const bins = 14, step = (mx-mn)/bins;
+    const counts = Array(bins).fill(0);
+    vals.forEach(v => { const i = Math.min(Math.floor((v-mn)/step), bins-1); counts[i]++; });
+    const blabels = Array.from({length:bins}, (_,i) => (mn+i*step).toFixed(1));
+    return {labels:blabels, counts, color};
+  }
+
+  function drawHist(id, {labels, counts, color}) {
+    charts[id] = new Chart(document.getElementById(id), {
+      type: 'bar',
+      data: { labels, datasets:[{ data:counts, backgroundColor:color+'33', borderColor:color, borderWidth:1 }] },
+      options: {
+        responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{display:false} },
+        scales: {
+          x: { ticks:{...tickStyle, maxTicksLimit:7}, grid:{color:gridColor} },
+          y: { ticks:{...tickStyle}, grid:{color:gridColor} }
+        }
+      }
+    });
+  }
+
+  drawHist('ch-thist', makeHist(temps, '#b45309'));
+  drawHist('ch-hhist', makeHist(hums,  '#1d4ed8'));
+}
+</script>
+</body>
+</html>
