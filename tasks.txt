@@ -1,0 +1,11 @@
+
+------------------------------------------------------------------
+1.receiver is up when server starts - maybe better if it starts when hardware starts
+2.esp should send data less frequently
+3.flask console to be disabled or used as vulnerability
+4.admin login as a cookie/session
+5.admin functions
+6.better admin password
+7.add a user on the raspberry, root should have a difficult password
+
+
