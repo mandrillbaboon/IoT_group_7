@@ -214,4 +214,4 @@ if __name__ == "__main__":
     print("\n  EnviroSense running → http://localhost:5000\n")
     receiver = threading.Thread(target=mqtt_receiver.start, daemon=True)
     receiver.start()
-    app.run(host="192.168.0.101", port=6007, debug=True)
+    app.run(host="10.225.203.97", port=6007, debug=True)

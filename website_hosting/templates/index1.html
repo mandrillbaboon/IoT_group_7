@@ -24,8 +24,6 @@
   --blue-l:   #eff6ff;
   --mono:     'IBM Plex Mono', monospace;
   --sans:     'IBM Plex Sans', sans-serif;
-  --danger:   #dc2626;
-  --danger-l: #fee2e2;
   --radius:   6px;
 }
 
@@ -111,7 +109,6 @@ header {
 .header-brand { display: flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); }
 .header-right  { display: flex; align-items: center; gap: 20px; }
 .header-time   { font-family: var(--mono); font-size: 11px; color: var(--muted); }
-.role-badge     { font-family: var(--mono); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; padding: 4px 8px; border-radius: var(--radius); background: var(--accent-l); color: var(--accent); border: 1px solid var(--border); }
 .logout        { font-family: var(--mono); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); cursor: pointer; background: none; border: 1px solid var(--border); padding: 5px 10px; border-radius: var(--radius); transition: color .15s, border-color .15s; }
 .logout:hover  { color: #dc2626; border-color: #dc2626; }
 
@@ -153,42 +150,6 @@ tr:last-child td { border: none; }
 tr:hover td { background: var(--bg); color: var(--text); }
 
 .loading { text-align: center; padding: 40px; color: var(--faint); font-family: var(--mono); font-size: 12px; }
-
-.admin-panel {
-  display: none;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 20px 22px;
-  margin-bottom: 24px;
-}
-.admin-panel.visible { display: block; }
-.admin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 14px; }
-.admin-box { border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; background: var(--bg); }
-.admin-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
-.small-btn {
-  padding: 7px 10px;
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text);
-  cursor: pointer;
-  font-family: var(--mono);
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: .08em;
-}
-.small-btn:hover { border-color: var(--accent); color: var(--accent); }
-.small-btn.danger { color: var(--danger); border-color: var(--danger-l); }
-.small-btn.danger:hover { border-color: var(--danger); background: var(--danger-l); }
-.small-btn.primary { color: white; background: var(--accent); border-color: var(--accent); }
-.admin-msg { margin-top: 10px; color: var(--muted); font-family: var(--mono); font-size: 11px; min-height: 18px; }
-.admin-form { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 8px; align-items: end; margin-top: 8px; }
-.admin-form input { margin-bottom: 0; }
-@media (max-width: 800px) {
-  .stats, .panels, .admin-grid { grid-template-columns: 1fr; }
-  .admin-form { grid-template-columns: 1fr; }
-}
 </style>
 </head>
 <body>
@@ -250,105 +211,18 @@ async function registerUser() {
   <header>
     <div class="header-brand"><span class="brand-dot"></span>EnviroSense</div>
     <div class="header-right">
-      <span class="role-badge" id="roleBadge">user</span>
       <span class="header-time" id="clock"></span>
       <button class="logout" onclick="logout()">Sign out</button>
     </div>
   </header>
   <main>
-    <section id="adminPanel" class="admin-panel">
-      <div class="panel-title">Admin panel</div>
-      <div class="panel-sub">Fonctions réservées aux administrateurs</div>
-
-      <div class="admin-grid">
-        <div class="admin-box">
-          <div class="panel-title">Users</div>
-          <div class="panel-sub">Voir les comptes et modifier les rôles</div>
-          <div class="admin-actions">
-            <button class="small-btn primary" onclick="loadAdminUsers()">Refresh users</button>
-            <button class="small-btn" onclick="showAdminSecret()">Show admin flag</button>
-          </div>
-          <div id="adminUsers" class="tbl-wrap" style="margin-top:12px"></div>
-        </div>
-
-        <div class="admin-box">
-          <div class="panel-title">Database actions</div>
-          <div class="panel-sub">Ajouter ou supprimer des données capteur</div>
-
-          <div class="admin-form">
-            <div>
-              <label>Sensor</label>
-              <input type="text" id="manualSensor" value="manual">
-            </div>
-            <div>
-              <label>Temp</label>
-              <input type="text" id="manualTemp" placeholder="23.5">
-            </div>
-            <div>
-              <label>Humidity</label>
-              <input type="text" id="manualHum" placeholder="45">
-            </div>
-            <button class="small-btn primary" onclick="addManualReading()">Add</button>
-          </div>
-
-          <div class="admin-actions">
-            <button class="small-btn danger" onclick="clearAllReadings()">Clear all readings</button>
-          </div>
-
-          <div id="adminMsg" class="admin-msg"></div>
-        </div>
-      </div>
-    </section>
-
     <div id="content"><div class="loading">Loading data…</div></div>
   </main>
 </div>
 
 <script>
-let TOKEN = localStorage.getItem('enviro_token');
-let CURRENT_USER = null;
+let TOKEN = null;
 let charts = {};
-let refreshInterval = null;
-
-function showDashboard() {
-  document.getElementById('login').classList.add('hidden');
-  document.getElementById('dash').classList.add('visible');
-}
-
-function showLogin() {
-  document.getElementById('dash').classList.remove('visible');
-  document.getElementById('login').classList.remove('hidden');
-}
-
-function saveToken(token) {
-  TOKEN = token;
-  localStorage.setItem('enviro_token', token);
-}
-
-function clearToken() {
-  TOKEN = null;
-  localStorage.removeItem('enviro_token');
-}
-
-function startAutoRefresh() {
-  if (!refreshInterval) {
-    refreshInterval = setInterval(loadDashboard, 60000);
-  }
-}
-
-function stopAutoRefresh() {
-  if (refreshInterval) {
-    clearInterval(refreshInterval);
-    refreshInterval = null;
-  }
-}
-
-function destroyCharts() {
-  Object.values(charts).forEach(c => {
-    try { c.destroy(); } catch(e) {}
-  });
-  charts = {};
-}
 
 // ── Clock ────────────────────────────────────────────────────────────────────
 setInterval(() => {
@@ -360,236 +234,45 @@ setInterval(() => {
 document.getElementById('p').addEventListener('keydown', e => { if (e.key==='Enter') login(); });
 document.getElementById('u').addEventListener('keydown', e => { if (e.key==='Enter') login(); });
 
-// Si on actualise la page, on récupère le token stocké dans le navigateur
-window.addEventListener('DOMContentLoaded', async () => {
-  if (!TOKEN) return;
-
-  showDashboard();
-
-  try {
-    await loadMe();
-    await loadDashboard();
-    startAutoRefresh();
-  } catch(e) {
-    clearToken();
-    stopAutoRefresh();
-    showLogin();
-  }
-});
-
 async function login() {
   const u = document.getElementById('u').value.trim();
   const p = document.getElementById('p').value;
-  const err = document.getElementById('err');
-  err.style.color = '#dc2626';
-  err.textContent = '';
-
+  document.getElementById('err').textContent = '';
   try {
     const res = await fetch('/api/login', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({username:u, password:p})
     });
-
     const data = await res.json();
-
-    if (!res.ok) {
-      err.textContent = data.error || 'Login failed';
-      return;
-    }
-
-    saveToken(data.token);
-    showDashboard();
-    await loadMe();
-    await loadDashboard();
-    startAutoRefresh();
-
+    if (!res.ok) { document.getElementById('err').textContent = data.error || 'Login failed'; return; }
+    TOKEN = data.token;
+    document.getElementById('login').classList.add('hidden');
+    document.getElementById('dash').classList.add('visible');
+    loadDashboard();
+    setInterval(loadDashboard,60000);
   } catch(e) {
-    err.textContent = 'Connection error';
+    document.getElementById('err').textContent = 'Connection error';
   }
 }
 
 async function logout() {
   await fetch('/api/logout', { method:'POST', headers: authHeaders() }).catch(()=>{});
-
-  clearToken();
-  CURRENT_USER = null;
-  stopAutoRefresh();
-  destroyCharts();
-
-  showLogin();
+  TOKEN = null;
+  Object.values(charts).forEach(c => c.destroy()); charts = {};
+  document.getElementById('dash').classList.remove('visible');
+  document.getElementById('login').classList.remove('hidden');
   document.getElementById('p').value = '';
 }
 
-function authHeaders() {
-  return { 'Authorization': 'Bearer ' + TOKEN };
-}
-
-async function loadMe() {
-  const res = await fetch('/api/me', { headers: authHeaders() });
-  if (!res.ok) throw new Error('Auth error');
-
-  CURRENT_USER = await res.json();
-
-  const roleBadge = document.getElementById('roleBadge');
-  roleBadge.textContent = CURRENT_USER.username + ' · ' + CURRENT_USER.role;
-
-  const adminPanel = document.getElementById('adminPanel');
-  if (CURRENT_USER.role === 'admin') {
-    adminPanel.classList.add('visible');
-    await loadAdminUsers();
-  } else {
-    adminPanel.classList.remove('visible');
-  }
-}
-
-
-// ── Admin functions ───────────────────────────────────────────────────────────
-async function adminFetch(url, options = {}) {
-  const res = await fetch(url, {
-    ...options,
-    headers: {
-      ...(options.headers || {}),
-      ...authHeaders()
-    }
-  });
-
-  const data = await res.json().catch(() => ({}));
-
-  if (!res.ok) {
-    throw new Error(data.error || 'Admin request failed');
-  }
-
-  return data;
-}
-
-function setAdminMsg(msg, isError=false) {
-  const el = document.getElementById('adminMsg');
-  el.style.color = isError ? '#dc2626' : '#1a6b45';
-  el.textContent = msg;
-}
-
-async function loadAdminUsers() {
-  try {
-    const users = await adminFetch('/api/admin/users');
-
-    document.getElementById('adminUsers').innerHTML = `
-      <table>
-        <thead>
-          <tr><th>ID</th><th>Username</th><th>Role</th><th>Action</th></tr>
-        </thead>
-        <tbody>
-          ${users.map(u => `
-            <tr>
-              <td>${u.id}</td>
-              <td>${u.username}</td>
-              <td>${u.role}</td>
-              <td>
-                ${u.role === 'admin'
-                  ? `<button class="small-btn danger" onclick="changeUserRole(${u.id}, 'user')">Make user</button>`
-                  : `<button class="small-btn" onclick="changeUserRole(${u.id}, 'admin')">Make admin</button>`
-                }
-              </td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-    `;
-  } catch (e) {
-    setAdminMsg(e.message, true);
-  }
-}
-
-async function changeUserRole(userId, role) {
-  try {
-    await adminFetch(`/api/admin/users/${userId}/role`, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({role})
-    });
-
-    setAdminMsg('Rôle modifié.');
-    await loadAdminUsers();
-  } catch (e) {
-    setAdminMsg(e.message, true);
-  }
-}
-
-async function showAdminSecret() {
-  try {
-    const data = await adminFetch('/api/admin/secret');
-    setAdminMsg(data.flag || data.message);
-  } catch (e) {
-    setAdminMsg(e.message, true);
-  }
-}
-
-async function addManualReading() {
-  try {
-    const sensor_id = document.getElementById('manualSensor').value.trim();
-    const temperature = document.getElementById('manualTemp').value.trim();
-    const humidity = document.getElementById('manualHum').value.trim();
-
-    await adminFetch('/api/admin/readings', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({sensor_id, temperature, humidity})
-    });
-
-    setAdminMsg('Mesure ajoutée.');
-    await loadDashboard();
-  } catch (e) {
-    setAdminMsg(e.message, true);
-  }
-}
-
-async function clearAllReadings() {
-  if (!confirm('Supprimer toutes les mesures ?')) return;
-
-  try {
-    await adminFetch('/api/admin/readings', { method: 'DELETE' });
-    setAdminMsg('Toutes les mesures ont été supprimées.');
-    await loadDashboard();
-  } catch (e) {
-    setAdminMsg(e.message, true);
-  }
-}
-
-async function deleteReading(id) {
-  if (!confirm('Supprimer cette mesure ?')) return;
-
-  try {
-    await adminFetch(`/api/admin/readings/${id}`, { method: 'DELETE' });
-    setAdminMsg('Mesure supprimée.');
-    await loadDashboard();
-  } catch (e) {
-    setAdminMsg(e.message, true);
-  }
-}
+function authHeaders() { return { 'Authorization': 'Bearer ' + TOKEN }; }
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 async function loadDashboard() {
-  const [resReadings, resStats] = await Promise.all([
-    fetch('/api/readings?limit=300', { headers: authHeaders() }),
-    fetch('/api/stats',              { headers: authHeaders() }),
+  const [readings, stats] = await Promise.all([
+    fetch('/api/readings?limit=300', { headers: authHeaders() }).then(r=>r.json()),
+    fetch('/api/stats',              { headers: authHeaders() }).then(r=>r.json()),
   ]);
-
-  // Si le token est invalide ou expiré côté serveur
-  if (resReadings.status === 401 || resStats.status === 401) {
-    clearToken();
-    stopAutoRefresh();
-    destroyCharts();
-    showLogin();
-    return;
-  }
-
-  if (!resReadings.ok || !resStats.ok) {
-    throw new Error('Erreur pendant le chargement des données');
-  }
-
-  const readings = await resReadings.json();
-  const stats = await resStats.json();
-
   renderDashboard(readings, stats);
 }
 
@@ -636,7 +319,7 @@ function renderDashboard(data, s) {
       <div class="panel-sub">Latest 20 records from database</div>
       <div class="tbl-wrap" style="margin-top:12px">
         <table>
-          <thead><tr><th>#</th><th>Timestamp</th><th>Temperature</th><th>Humidity</th>${CURRENT_USER && CURRENT_USER.role === 'admin' ? '<th>Action</th>' : ''}</tr></thead>
+          <thead><tr><th>#</th><th>Timestamp</th><th>Temperature</th><th>Humidity</th></tr></thead>
           <tbody>
             ${[...data].reverse().slice(0,20).map((r,i)=>`
               <tr>
@@ -644,7 +327,6 @@ function renderDashboard(data, s) {
                 <td>${r.ts.replace('T',' ')}</td>
                 <td style="color:var(--amber)">${r.temp.toFixed(1)} °C</td>
                 <td style="color:var(--blue)">${r.hum.toFixed(1)} %</td>
-                ${CURRENT_USER && CURRENT_USER.role === 'admin' ? `<td><button class="small-btn danger" onclick="deleteReading(${r.id})">Delete</button></td>` : ''}
               </tr>`).join('')}
           </tbody>
         </table>
@@ -655,8 +337,6 @@ function renderDashboard(data, s) {
 }
 
 function buildCharts(data) {
-  destroyCharts();
-
   const labels = data.map(r => r.ts.slice(5,16).replace('T',' '));
   const temps  = data.map(r => r.temp);
   const hums   = data.map(r => r.hum);
