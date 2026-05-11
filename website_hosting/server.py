@@ -410,4 +410,4 @@ if __name__ == "__main__":
     receiver.start()
 
     # Mets 0.0.0.0 si tu veux accéder depuis une autre machine du réseau.
-    app.run(host="10.225.203.97", port=6007, debug=True)
+    app.run(host="10.225.203.97", port=6007, debug=True,use_reloader=False)
