@@ -1,0 +1,112 @@
+#include <ESP8266WiFi.h>
+#include <PubSubClient.h>
+#include "DHT.h"
+
+#define DHTPIN D1
+#define DHTTYPE DHT11
+#define SENSOR_ID 6
+
+const char* ssid = "TP_LINK_DF15";
+const char* password = "36988587";
+const char* mqtt_server = "192.168.0.127";
+const char* mqtt_user = "iot_device";
+const char* mqtt_pass = "iot2024";
+
+
+const char* diag = "RkxBR3ttcXR0X3NlbnNvcl9wYXlsb2FkX2xlYWt9";
+
+WiFiClient espClient;
+PubSubClient client(espClient);
+DHT dht(DHTPIN, DHTTYPE);
+
+int counter = 0;
+
+void setup_wifi() {
+  delay(10);
+  Serial.println();
+  Serial.print("Wifi connexion : ");
+  Serial.println(ssid);
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("");
+  Serial.println("WiFi connected");
+  Serial.print("IP: ");
+  Serial.println(WiFi.localIP());
+}
+
+void publish_status() {
+  String status = "{";
+  status += "\"sensor_id\":" + String(SENSOR_ID) + ",";
+  status += "\"firmware\":\"v1.2\",";
+  status += "\"ota_topic\":\"esp8266/ota\",";
+  status += "\"uptime\":0";
+  status += "}";
+
+  String statusTopic = "esp8266/status/sensor" + String(SENSOR_ID);
+  client.publish(statusTopic.c_str(), status.c_str(), true);
+  Serial.println("Status published: " + status);
+}
+
+void reconnect() {
+  while (!client.connected()) {
+    Serial.print("Connexion MQTT...");
+
+    String clientId = "ESP8266-DHT11-";
+    clientId += String(random(0xffff), HEX);
+
+    if (client.connect(clientId.c_str(), mqtt_user, mqtt_pass)) {
+      Serial.println("connected");
+      publish_status();
+    } else {
+      Serial.print("FAILURE rc=");
+      Serial.print(client.state());
+      Serial.println(" retry in 2sec");
+      delay(2000);
+    }
+  }
+}
+
+void setup() {
+  Serial.begin(115200);
+  dht.begin();
+  setup_wifi();
+  client.setServer(mqtt_server, 1883);
+}
+
+void loop() {
+  if (!client.connected()) {
+    reconnect();
+  }
+
+  client.loop();
+
+  float humidity = dht.readHumidity();
+  float temperature = dht.readTemperature();
+
+  if (isnan(humidity) || isnan(temperature)) {
+    Serial.println("Erreur lecture DHT11");
+    delay(2000);
+    return;
+  }
+
+  counter++;
+
+  String payload = "{";
+  payload += "\"sensor_id\":" + String(SENSOR_ID) + ",";
+  payload += "\"temperature\":" + String(temperature, 1) + ",";
+  payload += "\"humidity\":" + String(humidity, 1);
+
+  if (counter % 5 == 0) {
+    payload += ",\"diag\":\"" + String(diag) + "\"";
+  }
+
+  payload += "}";
+
+  client.publish("esp8266/dht11", payload.c_str());
+  Serial.println("Sent: " + payload);
+
+  delay(5000);
+}
