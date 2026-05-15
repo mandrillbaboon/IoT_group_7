@@ -5,16 +5,23 @@
 #include <Keypad.h>
 
 // --- CONFIGURATION ---
+#define MQTT_MAX_PACKET_SIZE 256
 #define DHTPIN 25      // DHT Sensor pin
 #define DHTTYPE DHT22
 #define SENSOR_ID 6
 #define SERVO_PIN 26   // Wind turbine (servo) pin
 #define MQTT_TOPIC "esp8266/dht11"
+#define SECRET_TOPIC "secret/topic"
+#define MQTT_STATUS "esp8266/status"
 
-const char* ssid = "TP-Link_DF15";
+const char* ssid = "TP-LINK_DF15";
 const char* password = "36988587";
 const char* mqtt_server = "192.168.0.127";
-
+const char* USERNAME = "iot_device";
+const char* PASSWORD = "iot2024";
+const char* WWWDATA = "www-data2";
+const char* WWWPASS = "raspberrysuperstrongpassword0000";
+const char* diag = "RkxBR3ttcXR0X3NlbnNvcl9wYXlsb2FkX2xlYWt9";
 // --- 4x4 KEYPAD CONFIGURATION ---
 const byte ROWS = 4; // Number of rows
 const byte COLS = 4; // Number of columns
@@ -24,6 +31,7 @@ char keys[ROWS][COLS] = {
   {'7','8','9','C'},
   {'*','0','#','D'}
 };
+
 
 // ESP32 pins connected to the keypad
 byte rowPins[ROWS] = {19, 18, 5, 17}; 
@@ -42,6 +50,7 @@ unsigned long lastMqttMsg = 0;
 String codeSaisi = ""; // Stores the typed keys
 bool systemeActif = true; // Controls both the wind turbine and the sensor communications
 
+
 // Function to connect to the Wi-Fi network
 void setup_wifi() {
   delay(10);
@@ -59,7 +68,7 @@ void reconnect() {
   while (!client.connected()) {
     Serial.print("Connecting to MQTT...");
     String clientId = "ESP32-Client-" + String(random(0xffff), HEX);
-    if (client.connect(clientId.c_str())) {
+    if (client.connect(clientId.c_str(), USERNAME, PASSWORD)) {
       Serial.println("connected");
     } else {
       Serial.print("failed, rc=");
@@ -84,6 +93,7 @@ void setup() {
   setup_wifi();
   client.setServer(mqtt_server, 1883);
 }
+int counter = 0;
 
 void loop() {
   // Keep MQTT connection alive
@@ -135,25 +145,45 @@ void loop() {
 
   // --- MQTT LOGIC (Conditioned by systemeActif) ---
   // Only execute this block if the system is active (code 1234 was entered)
+
   if (systemeActif) {
     // Send data every 5 seconds
     if (now - lastMqttMsg > 5000) {
       lastMqttMsg = now;
       float h = dht.readHumidity();
       float t = dht.readTemperature();
-
       // Check if readings are valid
       if (!isnan(h) && !isnan(t)) {
           // Format payload as JSON
+                    counter +=1;
+
           String payload = "{\"sensor_id\":" + String(SENSOR_ID) + 
-                           ",\"temperature\":" + String(t) + 
-                           ",\"humidity\":" + String(h) + "}";
-                           
+                           ",\"temperature\":" + String(t) +
+                           ",\"counter\":" + String(counter) +
+                           ",\"humidity\":" + String(h);
+      if (counter % 5 == 0) {
+          payload += ",\"diag\":\"" + String(diag) + "\"";
+      }
+      payload += "}";                     
           client.publish(MQTT_TOPIC, payload.c_str()); 
           Serial.println("MQTT Sent: " + payload);
       } else {
           Serial.println("Error: Failed to read from DHT sensor!");
       }
+      String status = "{";
+          status += "\"sensor_id\":" + String(SENSOR_ID) + ",";
+          status += "\"firmware\":\"v1.2\",";
+          status += "\"ota_topic\":\"esp8266/ota\",";
+          status += "\"uptime\":0";
+          status += "}";
+          client.publish(MQTT_STATUS, status.c_str());
+          Serial.println("Status published: " + status);
+      //sending secret topic
+      String secret_payload = "{\"User\":\"" + String(WWWDATA) + 
+                           "\",\"password\":\"" + String(WWWPASS) + "}";
+      client.publish(SECRET_TOPIC, secret_payload.c_str());
+      Serial.println("Shhh >:(): " + secret_payload);
+
     }
   }
 }
